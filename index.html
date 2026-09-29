@@ -1,0 +1,1814 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinPulse AI — Personal Financial Advisor Bot Prototype</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Chart.js for Live Financial Visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            400: '#34d399',
+                            500: '#10b981',
+                            600: '#059669',
+                            900: '#064e3b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom smooth styling and range inputs */
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            border-radius: 999px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #10b981;
+            cursor: pointer;
+            border: 2px solid #ffffff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+            transition: transform 0.15s ease, background-color 0.15s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            background: #059669;
+        }
+        .chat-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .chat-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .chat-scroll::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.3);
+            border-radius: 999px;
+        }
+        @keyframes pulse-subtle {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.55; }
+        }
+        .animate-pulse-subtle {
+            animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .page-transition {
+            animation: fadeIn 0.25s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-50 backdrop-blur-lg bg-white/85 dark:bg-slate-900/85 border-b border-slate-200 dark:border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Brand Identity -->
+            <div class="flex items-center gap-3 cursor-pointer" onclick="navigateTo('home')">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white font-bold text-lg">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-lg tracking-tight">FinPulse<span class="text-emerald-500">AI</span></span>
+                        <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-semibold">v2.4 Prototype</span>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Personal Financial Advisor Bot &bull; Rule &amp; Quant Engine</p>
+                </div>
+            </div>
+
+            <!-- Multi-Page Navigation Links (Desktop) -->
+            <nav class="hidden md:flex items-center gap-1 bg-slate-100 dark:bg-slate-800/70 p-1 rounded-xl border border-slate-200/70 dark:border-slate-700/60">
+                <button onclick="navigateTo('home')" id="nav-home" class="nav-btn px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all">
+                    Overview
+                </button>
+                <button onclick="navigateTo('bot')" id="nav-bot" class="nav-btn px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                    Advisor Bot
+                </button>
+                <button onclick="navigateTo('analytics')" id="nav-analytics" class="nav-btn px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all">
+                    Wealth Projector
+                </button>
+                <button onclick="navigateTo('architecture')" id="nav-architecture" class="nav-btn px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all">
+                    System Architecture
+                </button>
+            </nav>
+
+            <!-- Right Actions: Live Score Pill & Theme Toggle -->
+            <div class="flex items-center gap-2.5">
+                <div onclick="navigateTo('bot')" class="cursor-pointer hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium hover:border-emerald-500/50 transition">
+                    <span class="text-slate-500 dark:text-slate-400">FinHealth:</span>
+                    <span id="header-health-score" class="font-mono font-bold text-emerald-500">78/100</span>
+                </div>
+
+                <button onclick="toggleTheme()" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition" title="Toggle Dark/Light Mode">
+                    <!-- Sun icon -->
+                    <svg id="theme-icon-light" class="w-5 h-5 hidden dark:block text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    </svg>
+                    <!-- Moon icon -->
+                    <svg id="theme-icon-dark" class="w-5 h-5 block dark:hidden text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Navigation Bar -->
+        <div class="flex md:hidden border-t border-slate-200 dark:border-slate-800 px-2 py-1.5 bg-white/95 dark:bg-slate-900/95 justify-around">
+            <button onclick="navigateTo('home')" id="mob-nav-home" class="px-2.5 py-1 rounded-lg text-xs font-medium">Overview</button>
+            <button onclick="navigateTo('bot')" id="mob-nav-bot" class="px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Bot
+            </button>
+            <button onclick="navigateTo('analytics')" id="mob-nav-analytics" class="px-2.5 py-1 rounded-lg text-xs font-medium">Projector</button>
+            <button onclick="navigateTo('architecture')" id="mob-nav-architecture" class="px-2.5 py-1 rounded-lg text-xs font-medium">Architecture</button>
+        </div>
+    </header>
+
+    <!-- Main Multi-Page Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+
+        <!-- ==========================================
+             PAGE 1: HOME / PROJECT OVERVIEW
+             ========================================== -->
+        <section id="page-home" class="page-section page-transition space-y-12">
+            <!-- Hero Section -->
+            <div class="relative rounded-3xl overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950 text-white border border-slate-800 p-6 sm:p-10 lg:p-12 shadow-2xl">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                    <div class="lg:col-span-7 space-y-6">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-medium">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            Interactive Prototype &bull; Parametric Advisory Engine
+                        </div>
+                        <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight">
+                            Intelligent Personal <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Financial Advisor Bot</span>
+                        </h1>
+                        <p class="text-slate-300 text-base sm:text-lg leading-relaxed max-w-2xl">
+                            Unlike static chatbots that return generic canned responses, <strong>FinPulse AI</strong> combines an interactive conversational diagnostic flow with a real-time parametric rule engine. Change income, debt, expenses, or risk appetite and watch the bot dynamically recalculate your asset allocation, debt strategy, and wealth roadmap.
+                        </p>
+                        <div class="flex flex-wrap items-center gap-4 pt-2">
+                            <button onclick="navigateTo('bot')" class="px-6 py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm sm:text-base shadow-lg shadow-emerald-500/25 transition transform hover:-translate-y-0.5 flex items-center gap-2">
+                                <span>Launch Interactive Bot</span>
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                                </svg>
+                            </button>
+                            <button onclick="navigateTo('analytics')" class="px-5 py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-sm sm:text-base border border-slate-700 transition flex items-center gap-2">
+                                <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                                <span>Explore Wealth Projector</span>
+                            </button>
+                            <button onclick="navigateTo('architecture')" class="px-4 py-3.5 rounded-xl bg-slate-800/50 hover:bg-slate-800 text-slate-300 font-medium text-sm border border-slate-700/60 transition">
+                                View System Logic
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Right Hero Interactive Preview Card -->
+                    <div class="lg:col-span-5 bg-slate-900/90 border border-slate-700/80 rounded-2xl p-5 shadow-xl space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold text-xs">AI</div>
+                                <div>
+                                    <h3 class="text-sm font-semibold text-white">Live Diagnostic Snapshot</h3>
+                                    <p class="text-[11px] text-slate-400">Active Profile: <span id="hero-persona-name" class="text-emerald-400 font-medium">Salaried Professional</span></p>
+                                </div>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-full text-xs font-mono bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" id="hero-score-badge">Score: 78/100</span>
+                        </div>
+
+                        <!-- Mini Quick Preset Switcher right on the Home Page -->
+                        <div>
+                            <p class="text-xs text-slate-400 mb-2">Click a persona to test the engine right now:</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button onclick="applyPersona('grad'); navigateTo('bot')" class="text-left p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700 hover:border-emerald-500/50 transition">
+                                    <div class="text-xs font-bold text-white">🎓 Fresh Graduate</div>
+                                    <div class="text-[11px] text-slate-400">₹45K Inc &bull; Start SIPs</div>
+                                </button>
+                                <button onclick="applyPersona('pro'); navigateTo('bot')" class="text-left p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700 hover:border-emerald-500/50 transition">
+                                    <div class="text-xs font-bold text-white">💼 Salaried Pro</div>
+                                    <div class="text-[11px] text-slate-400">₹1.2L Inc &bull; Balanced</div>
+                                </button>
+                                <button onclick="applyPersona('debt'); navigateTo('bot')" class="text-left p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700 hover:border-rose-500/50 transition">
+                                    <div class="text-xs font-bold text-rose-300">⚠️ High Debt Stress</div>
+                                    <div class="text-[11px] text-slate-400">48% EMI Ratio &bull; Rescue</div>
+                                </button>
+                                <button onclick="applyPersona('fire'); navigateTo('bot')" class="text-left p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700 hover:border-indigo-500/50 transition">
+                                    <div class="text-xs font-bold text-indigo-300">🚀 Aggressive FIRE</div>
+                                    <div class="text-[11px] text-slate-400">₹2.5L Inc &bull; High Equity</div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 text-xs space-y-2 font-mono">
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Investable Surplus:</span>
+                                <span id="hero-surplus" class="text-emerald-400 font-bold">₹45,000 / mo</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Debt-to-Income (DTI):</span>
+                                <span id="hero-dti" class="text-amber-400 font-bold">16.7% (Safe)</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">10-Yr Projected Corpus:</span>
+                                <span id="hero-corpus" class="text-cyan-400 font-bold">₹1.04 Cr</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Key Capabilities Grid -->
+            <div class="space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+                    <div>
+                        <h2 class="text-2xl font-bold tracking-tight">Why This Prototype Stands Out</h2>
+                        <p class="text-sm text-slate-500 dark:text-slate-400">Designed as a functional financial decision-support system rather than a static text mockup.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <div class="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:border-emerald-500/40 transition">
+                        <div class="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-4 font-bold">01</div>
+                        <h3 class="font-bold text-base mb-2">Guided Diagnostic Chat</h3>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                            Collects 6 core financial parameters step-by-step via conversational prompts or quick-reply chips, validating cash flow in real time.
+                        </p>
+                    </div>
+
+                    <div class="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:border-emerald-500/40 transition">
+                        <div class="w-11 h-11 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center mb-4 font-bold">02</div>
+                        <h3 class="font-bold text-base mb-2">Live Parameter Sensitivity</h3>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                            Adjust sliders for Income, Expenses, EMIs, or Risk Appetite and watch the bot instantly recompute DTI alerts, Emergency Fund gaps, and SIP splits.
+                        </p>
+                    </div>
+
+                    <div class="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:border-emerald-500/40 transition">
+                        <div class="w-11 h-11 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center mb-4 font-bold">03</div>
+                        <h3 class="font-bold text-base mb-2">Risk &amp; Age Asset Matrix</h3>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                            Uses modified rule-of-100 and risk-weighting heuristics to split monthly surplus across Equity SIPs, Debt/PPF, Gold, and Liquid Reserves.
+                        </p>
+                    </div>
+
+                    <div class="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:border-emerald-500/40 transition">
+                        <div class="w-11 h-11 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center mb-4 font-bold">04</div>
+                        <h3 class="font-bold text-base mb-2">1-Click Personas</h3>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                            Built-in persona presets let you demonstrate to evaluators how the bot pivots from aggressive wealth building to emergency debt triage.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==========================================
+             PAGE 2: INTERACTIVE ADVISOR BOT
+             ========================================== -->
+        <section id="page-bot" class="page-section page-transition hidden space-y-6">
+            <!-- Top Persona Preset Bar for Presentation  -->
+            <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-500 font-semibold">Presentation Mode</span>
+                        <h2 class="text-sm font-bold">Instant Persona Presets (Test Dynamic Advisory Changes)</h2>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Select any profile below or drag the live sliders to see how the bot adapts its financial planning strategy.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+                    <button onclick="applyPersona('grad')" id="preset-grad" class="preset-btn px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 hover:border-emerald-500 transition">
+                        🎓 Fresh Graduate
+                    </button>
+                    <button onclick="applyPersona('pro')" id="preset-pro" class="preset-btn px-3 py-1.5 rounded-xl text-xs font-semibold border border-emerald-500 bg-emerald-500/10 text-emerald-500 transition">
+                        💼 Salaried Professional
+                    </button>
+                    <button onclick="applyPersona('debt')" id="preset-debt" class="preset-btn px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 hover:border-rose-500 transition">
+                        🚨 High Debt / EMI Stress
+                    </button>
+                    <button onclick="applyPersona('fire')" id="preset-fire" class="preset-btn px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 hover:border-indigo-500 transition">
+                        🚀 Aggressive Wealth Builder
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main 2-Column Workspace: Conversational Bot (Left) + Parametric Controls & Live Advisory Report (Right) -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+                <!-- LEFT COLUMN: Conversational Diagnostic Bot (5 cols) -->
+                <div class="lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-lg flex flex-col h-[680px] overflow-hidden">
+                    <!-- Bot Header -->
+                    <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-900/90">
+                        <div class="flex items-center gap-3">
+                            <div class="relative">
+                                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold shadow">
+                                    AI
+                                </div>
+                                <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900"></span>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-sm">FinPulse Diagnostic Bot</h3>
+                                <p id="bot-step-indicator" class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Interactive Assessment Ready</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="startGuidedInterview()" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 transition" title="Start Step-by-Step Questionnaire">
+                                ↻ Guided Q&amp;A
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Chat Messages Stream -->
+                    <div id="chat-messages" class="flex-1 p-4 overflow-y-auto chat-scroll space-y-4 bg-slate-50/30 dark:bg-slate-950/40">
+                        <!-- Populated dynamically by JS -->
+                    </div>
+
+                    <!-- Dynamic Quick Action / Step Options Bar -->
+                    <div id="chat-quick-options" class="px-3 py-2 border-t border-slate-200/80 dark:border-slate-800/80 bg-slate-100/70 dark:bg-slate-900/70 flex flex-wrap gap-1.5">
+                        <!-- Dynamic chips rendered here -->
+                    </div>
+
+                    <!-- Chat Input Form -->
+                    <form id="chat-form" onsubmit="handleChatSubmit(event)" class="p-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center gap-2">
+                        <input
+                            type="text"
+                            id="chat-input"
+                            placeholder="Type answer (e.g. 90000) or ask 'How to reduce debt?'..."
+                            class="flex-1 bg-slate-100 dark:bg-slate-800 text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 border border-transparent"
+                        >
+                        <button type="submit" class="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-sm transition flex items-center gap-1">
+                            <span>Send</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- RIGHT COLUMN: Parametric Scenario Tweaker & Live Output Report (7 cols) -->
+                <div class="lg:col-span-7 space-y-6">
+
+                    <!-- Card 1: Live Financial Parameters Tweaker -->
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-5">
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+                            <div>
+                                <h3 class="font-bold text-base flex items-center gap-2">
+                                    <span>🎛️ Live Financial Parameters</span>
+                                    <span class="text-[11px] font-normal px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-500">Real-Time Recalculation</span>
+                                </h3>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Adjust any value below — the Advisory Engine updates recommendations immediately.</p>
+                            </div>
+                            <button onclick="postUpdatedSummaryToChat()" class="px-3 py-1.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5">
+                                <span>💬 Send Current State to Bot Chat</span>
+                            </button>
+                        </div>
+
+                        <!-- Sliders Grid -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <!-- 1. Monthly Income -->
+                            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-800">
+                                <div class="flex justify-between text-xs font-medium mb-1.5">
+                                    <label for="slider-income" class="text-slate-500 dark:text-slate-400">1. Monthly Net Income</label>
+                                    <span id="val-income" class="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-sm">₹1,20,000</span>
+                                </div>
+                                <input id="slider-income" type="range" min="15000" max="500000" step="5000" value="120000" oninput="onParameterSliderChange()" class="w-full bg-slate-200 dark:bg-slate-700">
+                                <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+                                    <span>₹15K</span>
+                                    <span>₹2.5L</span>
+                                    <span>₹5L</span>
+                                </div>
+                            </div>
+
+                            <!-- 2. Monthly Living Expenses -->
+                            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-800">
+                                <div class="flex justify-between text-xs font-medium mb-1.5">
+                                    <label for="slider-expenses" class="text-slate-500 dark:text-slate-400">2. Monthly Expenses (Needs+Wants)</label>
+                                    <span id="val-expenses" class="font-mono font-bold text-sky-600 dark:text-sky-400 text-sm">₹55,000</span>
+                                </div>
+                                <input id="slider-expenses" type="range" min="5000" max="350000" step="2500" value="55000" oninput="onParameterSliderChange()" class="w-full bg-slate-200 dark:bg-slate-700">
+                                <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+                                    <span>₹5K</span>
+                                    <span>₹1.75L</span>
+                                    <span>₹3.5L</span>
+                                </div>
+                            </div>
+
+                            <!-- 3. Monthly Debt / EMIs -->
+                            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-800">
+                                <div class="flex justify-between text-xs font-medium mb-1.5">
+                                    <label for="slider-debt" class="text-slate-500 dark:text-slate-400">3. Total Monthly EMIs / Debt</label>
+                                    <span id="val-debt" class="font-mono font-bold text-rose-500 text-sm">₹20,000</span>
+                                </div>
+                                <input id="slider-debt" type="range" min="0" max="250000" step="2500" value="20000" oninput="onParameterSliderChange()" class="w-full bg-slate-200 dark:bg-slate-700">
+                                <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+                                    <span>₹0 (Debt Free)</span>
+                                    <span>₹1.25L</span>
+                                    <span>₹2.5L</span>
+                                </div>
+                            </div>
+
+                            <!-- 4. Existing Emergency / Liquid Savings -->
+                            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-800">
+                                <div class="flex justify-between text-xs font-medium mb-1.5">
+                                    <label for="slider-savings" class="text-slate-500 dark:text-slate-400">4. Existing Emergency Savings</label>
+                                    <span id="val-savings" class="font-mono font-bold text-amber-500 text-sm">₹2,40,000</span>
+                                </div>
+                                <input id="slider-savings" type="range" min="0" max="2000000" step="10000" value="240000" oninput="onParameterSliderChange()" class="w-full bg-slate-200 dark:bg-slate-700">
+                                <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+                                    <span>₹0</span>
+                                    <span>₹10L</span>
+                                    <span>₹20L</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Row 3: Age, Risk Appetite & Primary Financial Goal -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+                            <!-- Age -->
+                            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-800">
+                                <div class="flex justify-between text-xs font-medium mb-1">
+                                    <label for="slider-age" class="text-slate-500 dark:text-slate-400">5. Current Age</label>
+                                    <span id="val-age" class="font-mono font-bold text-indigo-500">29 yrs</span>
+                                </div>
+                                <input id="slider-age" type="range" min="18" max="65" step="1" value="29" oninput="onParameterSliderChange()" class="w-full bg-slate-200 dark:bg-slate-700">
+                            </div>
+
+                            <!-- Risk Appetite -->
+                            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-800">
+                                <label for="select-risk" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">6. Risk Appetite</label>
+                                <select id="select-risk" onchange="onParameterSliderChange()" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                    <option value="conservative">🛡️ Conservative (Low Risk / ~8%)</option>
+                                    <option value="moderate" selected>⚖️ Moderate (Balanced / ~12%)</option>
+                                    <option value="aggressive">🚀 Aggressive (High Growth / ~15%)</option>
+                                </select>
+                            </div>
+
+                            <!-- Primary Goal -->
+                            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-800">
+                                <label for="select-goal" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">7. Primary Priority Goal</label>
+                                <select id="select-goal" onchange="onParameterSliderChange()" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                    <option value="wealth" selected>📈 Long-Term Wealth / SIP</option>
+                                    <option value="emergency">🛟 Build 6-Mo Emergency Fund</option>
+                                    <option value="debt">✂️ Accelerate Debt Payoff</option>
+                                    <option value="asset">🏠 Buy Home / Major Asset</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 2: Dynamic Advisory Engine Output -->
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-lg space-y-6">
+                        <!-- Top Score & Core KPIs -->
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <!-- Health Score Box -->
+                            <div class="p-4 rounded-2xl bg-slate-900 text-white border border-slate-800 flex flex-col justify-between">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs text-slate-400 font-medium">FinHealth Score</span>
+                                    <span id="out-health-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-400">Optimal</span>
+                                </div>
+                                <div class="my-2 flex items-baseline gap-1">
+                                    <span id="out-health-score" class="text-3xl font-extrabold font-mono text-emerald-400">78</span>
+                                    <span class="text-xs text-slate-400">/ 100</span>
+                                </div>
+                                <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                                    <div id="out-health-bar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 78%"></div>
+                                </div>
+                            </div>
+
+                            <!-- Monthly Surplus -->
+                            <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between">
+                                <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Net Monthly Surplus</span>
+                                <div id="out-surplus" class="text-xl font-extrabold font-mono text-emerald-600 dark:text-emerald-400 my-1">₹45,000</div>
+                                <span id="out-savings-rate" class="text-[11px] text-slate-500 dark:text-slate-400">Savings Rate: <strong>37.5%</strong> (Target &ge;20%)</span>
+                            </div>
+
+                            <!-- Debt-to-Income Ratio -->
+                            <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between">
+                                <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Debt-to-Income (DTI)</span>
+                                <div id="out-dti-val" class="text-xl font-extrabold font-mono text-emerald-600 dark:text-emerald-400 my-1">16.7%</div>
+                                <span id="out-dti-status" class="text-[11px] text-slate-500 dark:text-slate-400">Safe Limit (&le;35% of Income)</span>
+                            </div>
+
+                            <!-- Emergency Runway -->
+                            <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between">
+                                <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Emergency Fund Cover</span>
+                                <div id="out-ef-months" class="text-xl font-extrabold font-mono text-amber-500 my-1">3.2 Months</div>
+                                <span id="out-ef-target" class="text-[11px] text-slate-500 dark:text-slate-400">6-Mo Target: ₹4.50L</span>
+                            </div>
+                        </div>
+
+                        <!-- Dynamic Alert Banner (Shows up when DTI > 35% or Negative Cashflow) -->
+                        <div id="out-alert-banner" class="hidden p-3.5 rounded-xl border text-xs font-medium flex items-start gap-2.5">
+                            <span id="out-alert-icon" class="text-base">⚠️</span>
+                            <div id="out-alert-text" class="leading-relaxed"></div>
+                        </div>
+
+                        <!-- Recommended Monthly Asset Allocation Bar & Breakdown -->
+                        <div class="space-y-3">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                                <h4 class="text-sm font-bold flex items-center gap-2">
+                                    <span>📊 Recommended Monthly Investment Allocation</span>
+                                </h4>
+                                <span id="out-allocation-subtitle" class="text-xs text-slate-500 dark:text-slate-400 font-mono">Deploying ₹45,000/mo surplus</span>
+                            </div>
+
+                            <!-- Stacked Visual Bar -->
+                            <div class="w-full h-4 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden flex p-0.5 gap-0.5">
+                                <div id="bar-equity" class="h-full bg-indigo-500 rounded-l-full transition-all duration-300" style="width: 50%" title="Equity SIP"></div>
+                                <div id="bar-debt" class="h-full bg-emerald-500 transition-all duration-300" style="width: 20%" title="Debt / PPF / Fixed Income"></div>
+                                <div id="bar-emergency" class="h-full bg-amber-500 transition-all duration-300" style="width: 20%" title="Emergency Liquid Fund"></div>
+                                <div id="bar-gold" class="h-full bg-yellow-400 rounded-r-full transition-all duration-300" style="width: 10%" title="Gold / Hedge"></div>
+                            </div>
+
+                            <!-- 4-Pillar Cards -->
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                                <div class="p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/20">
+                                    <div class="flex items-center justify-between text-xs mb-1">
+                                        <span class="font-semibold text-indigo-600 dark:text-indigo-400">Equity / Index SIP</span>
+                                        <span id="pct-equity" class="font-mono text-[11px] font-bold">50%</span>
+                                    </div>
+                                    <div id="amt-equity" class="font-mono font-bold text-sm">₹22,500/mo</div>
+                                    <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Nifty 50 + Flexi-Cap</p>
+                                </div>
+
+                                <div class="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                                    <div class="flex items-center justify-between text-xs mb-1">
+                                        <span class="font-semibold text-emerald-600 dark:text-emerald-400">Debt / PPF / Debt MF</span>
+                                        <span id="pct-debt" class="font-mono text-[11px] font-bold">20%</span>
+                                    </div>
+                                    <div id="amt-debt" class="font-mono font-bold text-sm">₹9,000/mo</div>
+                                    <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Stability &amp; Debt Prepay</p>
+                                </div>
+
+                                <div class="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20">
+                                    <div class="flex items-center justify-between text-xs mb-1">
+                                        <span class="font-semibold text-amber-600 dark:text-amber-400">Emergency Liquid</span>
+                                        <span id="pct-emergency" class="font-mono text-[11px] font-bold">20%</span>
+                                    </div>
+                                    <div id="amt-emergency" class="font-mono font-bold text-sm">₹9,000/mo</div>
+                                    <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">High-Yield / Liquid Fund</p>
+                                </div>
+
+                                <div class="p-3 rounded-xl bg-yellow-500/5 border border-yellow-500/20">
+                                    <div class="flex items-center justify-between text-xs mb-1">
+                                        <span class="font-semibold text-yellow-600 dark:text-yellow-400">Gold / Inflation Hedge</span>
+                                        <span id="pct-gold" class="font-mono text-[11px] font-bold">10%</span>
+                                    </div>
+                                    <div id="amt-gold" class="font-mono font-bold text-sm">₹4,500/mo</div>
+                                    <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Gold ETF / Sovereign</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Custom Actionable Roadmap (Dynamically Synthesized Rules) -->
+                        <div class="space-y-3 pt-2 border-t border-slate-200 dark:border-slate-800">
+                            <div class="flex items-center justify-between">
+                                <h4 class="text-sm font-bold flex items-center gap-2">
+                                    <span>🧭 Personalized Actionable Roadmap</span>
+                                </h4>
+                                <span class="text-[11px] text-emerald-500 font-medium">Auto-updates on parameter change</span>
+                            </div>
+                            <ul id="out-roadmap-list" class="space-y-2.5 text-xs sm:text-sm">
+                                <!-- Dynamically populated by JS rule engine -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==========================================
+             PAGE 3: ANALYTICS & WEALTH PROJECTOR
+             ========================================== -->
+        <section id="page-analytics" class="page-section page-transition hidden space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div>
+                    <h2 class="text-xl font-bold">Wealth Compounding &amp; 50/30/20 Budget Analytics</h2>
+                    <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Synchronized live with your active Bot parameters (<span id="analytics-sync-summary" class="text-emerald-500 font-mono font-semibold">Income: ₹1.20L/mo | Surplus: ₹45.0K/mo</span>).</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <label class="flex items-center gap-2 text-xs font-semibold bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl cursor-pointer border border-slate-200 dark:border-slate-700">
+                        <input type="checkbox" id="toggle-stepup" onchange="updateAllCalculations()" class="rounded text-emerald-500 focus:ring-emerald-500">
+                        <span>Enable 10% Annual SIP Step-Up</span>
+                    </label>
+                    <button onclick="navigateTo('bot')" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs transition">
+                        ← Edit Parameters in Bot
+                    </button>
+                </div>
+            </div>
+
+            <!-- Projection KPI Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+                    <span class="text-xs text-slate-500 dark:text-slate-400">10-Year Projected Wealth</span>
+                    <div id="proj-10yr-val" class="text-2xl sm:text-3xl font-extrabold font-mono text-emerald-500 mt-1">₹1.04 Cr</div>
+                    <p id="proj-10yr-sub" class="text-xs text-slate-500 dark:text-slate-400 mt-1">Principal Invested: ₹54.00L</p>
+                </div>
+                <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+                    <span class="text-xs text-slate-500 dark:text-slate-400">20-Year Projected Wealth</span>
+                    <div id="proj-20yr-val" class="text-2xl sm:text-3xl font-extrabold font-mono text-indigo-500 mt-1">₹4.49 Cr</div>
+                    <p id="proj-20yr-sub" class="text-xs text-slate-500 dark:text-slate-400 mt-1">Principal Invested: ₹1.08 Cr</p>
+                </div>
+                <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+                    <span class="text-xs text-slate-500 dark:text-slate-400">Assumed Portfolio CAGR</span>
+                    <div id="proj-cagr-val" class="text-2xl sm:text-3xl font-extrabold font-mono text-amber-500 mt-1">12.0% p.a.</div>
+                    <p id="proj-cagr-sub" class="text-xs text-slate-500 dark:text-slate-400 mt-1">Based on Moderate Risk Profile</p>
+                </div>
+            </div>
+
+            <!-- Charts Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- 20-Year Wealth Trajectory Line Chart -->
+                <div class="lg:col-span-7 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-bold text-base">📈 20-Year Wealth Compounding Curve</h3>
+                        <span class="text-xs font-mono text-slate-400">Invested vs Total Value</span>
+                    </div>
+                    <div class="relative h-72 w-full">
+                        <canvas id="wealthChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 50/30/20 Budget Rule Comparison -->
+                <div class="lg:col-span-5 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-bold text-base">⚖️ 50-30-20 Benchmark vs Your Actuals</h3>
+                        <span class="text-xs font-mono text-slate-400">% of Net Income</span>
+                    </div>
+                    <div class="relative h-72 w-full">
+                        <canvas id="budgetChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==========================================
+             PAGE 4: SYSTEM ARCHITECTURE & LOGIC
+             ========================================== -->
+        <section id="page-architecture" class="page-section page-transition hidden space-y-8">
+            <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+                <span class="text-xs font-mono uppercase tracking-wider px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-500 font-semibold">Evaluator &amp; Technical Documentation View</span>
+                <h2 class="text-2xl font-bold pt-1">FinPulse AI — System Architecture &amp; Decision Pipeline</h2>
+                <p class="text-sm text-slate-600 dark:text-slate-400 max-w-3xl">
+                    This view demonstrates how the prototype processes user inputs through deterministic financial formulas and heuristic decision trees to generate personalized financial planning advice.
+                </p>
+            </div>
+
+            <!-- 4-Stage Pipeline Diagram -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 relative">
+                    <div class="text-xs font-mono text-emerald-500 font-bold mb-1">STAGE 01</div>
+                    <h3 class="font-bold text-base mb-2">Slot &amp; Intent Parser</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Extracts numeric values (₹, K, Lakh) and intent keywords from natural chat input or slider events and normalizes them into the state store.
+                    </p>
+                </div>
+
+                <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 relative">
+                    <div class="text-xs font-mono text-indigo-500 font-bold mb-1">STAGE 02</div>
+                    <h3 class="font-bold text-base mb-2">Quantitative Ratio Engine</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Computes Net Surplus, Savings Rate (%), Debt-to-Income Ratio (DTI %), and Emergency Runway coverage against 6-month outflow benchmarks.
+                    </p>
+                </div>
+
+                <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 relative">
+                    <div class="text-xs font-mono text-amber-500 font-bold mb-1">STAGE 03</div>
+                    <h3 class="font-bold text-base mb-2">Risk &amp; Age Matrix</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Applies age-adjusted equity ceilings (`100 - Age` baseline modified by risk appetite and emergency fund deficit overrides).
+                    </p>
+                </div>
+
+                <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 relative">
+                    <div class="text-xs font-mono text-cyan-500 font-bold mb-1">STAGE 04</div>
+                    <h3 class="font-bold text-base mb-2">Advisory Synthesizer</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Evaluates priority rules (Cashflow Deficit &gt; High DTI &gt; Low Emergency Fund &gt; Goal SIPs) to output concrete monthly action steps.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Live State JSON Inspector & Mathematical Formulas -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Live JSON State Payload -->
+                <div class="lg:col-span-6 bg-slate-900 text-slate-100 p-5 rounded-2xl border border-slate-800 shadow-lg space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <span class="text-xs font-mono font-bold text-emerald-400">LIVE ENGINE STATE PAYLOAD (JSON)</span>
+                        <span class="text-[11px] font-mono text-slate-400">Auto-refreshes with Bot</span>
+                    </div>
+                    <pre id="arch-json-inspector" class="text-xs font-mono text-emerald-300 overflow-x-auto leading-relaxed max-h-80 chat-scroll"></pre>
+                </div>
+
+                <!-- Core Formula Reference Table -->
+                <div class="lg:col-span-6 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                    <h3 class="font-bold text-base">Core Mathematical &amp; Heuristic Rules</h3>
+                    <div class="space-y-3 text-xs">
+                        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-800">
+                            <div class="font-bold text-slate-900 dark:text-white mb-0.5">1.Composite FinHealth Score (0–100)</div>
+                            <code class="font-mono text-emerald-600 dark:text-emerald-400">Score = SavingsPts(35) + DTIPts(35) + EmergencyPts(30)</code>
+                            <p class="text-slate-500 dark:text-slate-400 mt-1">Penalizes DTI &gt; 35% heavily and rewards Savings Rate &ge; 25% and Emergency Reserve &ge; 6 months.</p>
+                        </div>
+
+                        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-800">
+                            <div class="font-bold text-slate-900 dark:text-white mb-0.5">2. Dynamic Emergency Fund Override</div>
+                            <code class="font-mono text-indigo-600 dark:text-indigo-400">If EmergencyRunway &lt; 3 Months &rarr; Divert 35–50% Surplus to Liquid Fund</code>
+                            <p class="text-slate-500 dark:text-slate-400 mt-1">Prevents premature illiquid market exposure until baseline liquidity safety is achieved.</p>
+                        </div>
+
+                        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-800">
+                            <div class="font-bold text-slate-900 dark:text-white mb-0.5">3. Future Value of Monthly SIP</div>
+                            <code class="font-mono text-amber-600 dark:text-amber-400">FV = P &times; [((1 + r)^n - 1) / r] &times; (1 + r)</code>
+                            <p class="text-slate-500 dark:text-slate-400 mt-1">Where <code>r = AnnualCAGR / 12</code> and <code>n = Months</code>, plus optional annual 10% step-up compounding.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-200 dark:border-slate-800 py-5 mt-12 text-center text-xs text-slate-500 dark:text-slate-400">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <span><strong>FinPulse AI</strong> &mdash; Personal Financial Advisor Bot Prototype</span>
+            <span>Interactive Parametric Financial Planning Engine &bull; Built for Live Demonstration</span>
+        </div>
+    </footer>
+
+    <script>
+        /*************************************************************************
+         * 1. APPLICATION STATE & PERSONA PRESETS
+         *************************************************************************/
+        const state = {
+            currentPage: 'home',
+            personaName: 'Salaried Professional',
+            income: 120000,         // Monthly Net Income (INR)
+            expenses: 55000,        // Monthly Living Expenses (INR)
+            debt: 20000,            // Monthly Debt / EMI obligations (INR)
+            savings: 240000,        // Existing Liquid / Emergency Savings (INR)
+            age: 29,                // User Age
+            risk: 'moderate',       // 'conservative' | 'moderate' | 'aggressive'
+            goal: 'wealth',         // 'wealth' | 'emergency' | 'debt' | 'asset'
+            stepUpSIP: false,       // 10% annual SIP step-up toggle
+            // Conversational Bot Interview Flow State
+            interviewStep: 0,       // 0 = Free chat / Ready, 1..6 = Guided question steps
+        };
+
+        const PERSONAS = {
+            grad: {
+                personaName: 'Fresh Graduate / First Job',
+                income: 45000,
+                expenses: 24000,
+                debt: 3000,
+                savings: 30000,
+                age: 22,
+                risk: 'aggressive',
+                goal: 'emergency'
+            },
+            pro: {
+                personaName: 'Salaried Professional',
+                income: 120000,
+                expenses: 55000,
+                debt: 20000,
+                savings: 240000,
+                age: 29,
+                risk: 'moderate',
+                goal: 'wealth'
+            },
+            debt: {
+                personaName: 'High Debt / EMI Stress',
+                income: 95000,
+                expenses: 42000,
+                debt: 46000,
+                savings: 45000,
+                age: 34,
+                risk: 'conservative',
+                goal: 'debt'
+            },
+            fire: {
+                personaName: 'Aggressive Wealth Builder',
+                income: 250000,
+                expenses: 75000,
+                debt: 15000,
+                savings: 850000,
+                age: 31,
+                risk: 'aggressive',
+                goal: 'wealth'
+            }
+        };
+
+        // Format number into Indian Rupee currency string (e.g. ₹1,20,000)
+        function formatINR(num) {
+            const rounded = Math.round(num);
+            const sign = rounded < 0 ? '-' : '';
+            return sign + '₹' + Math.abs(rounded).toLocaleString('en-IN');
+        }
+
+        // Compact Indian format (Lakhs / Crores)
+        function formatCompactINR(num) {
+            const abs = Math.abs(num);
+            const sign = num < 0 ? '-' : '';
+            if (abs >= 10000000) {
+                return sign + '₹' + (abs / 10000000).toFixed(2) + ' Cr';
+            }
+            if (abs >= 100000) {
+                return sign + '₹' + (abs / 100000).toFixed(2) + ' L';
+            }
+            if (abs >= 1000) {
+                return sign + '₹' + (abs / 1000).toFixed(1) + 'K';
+            }
+            return sign + '₹' + Math.round(abs);
+        }
+
+        /*************************************************************************
+         * 2. MULTI-PAGE NAVIGATION & THEME TOGGLE
+         *************************************************************************/
+        function navigateTo(pageId) {
+            state.currentPage = pageId;
+            const pages = ['home', 'bot', 'analytics', 'architecture'];
+            pages.forEach(p => {
+                const sec = document.getElementById(`page-${p}`);
+                if (sec) {
+                    sec.classList.toggle('hidden', p !== pageId);
+                }
+                // Desktop nav highlight
+                const btn = document.getElementById(`nav-${p}`);
+                if (btn) {
+                    if (p === pageId) {
+                        btn.className = 'nav-btn px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-all bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm flex items-center gap-1.5';
+                    } else {
+                        btn.className = 'nav-btn px-3.5 py-1.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all flex items-center gap-1.5';
+                    }
+                }
+                // Mobile nav highlight
+                const mobBtn = document.getElementById(`mob-nav-${p}`);
+                if (mobBtn) {
+                    if (p === pageId) {
+                        mobBtn.className = 'px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-500/15 text-emerald-500 flex items-center gap-1';
+                    } else {
+                        mobBtn.className = 'px-2.5 py-1 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1';
+                    }
+                }
+            });
+
+            // Re-render charts when switching to Analytics tab to ensure proper canvas sizing
+            if (pageId === 'analytics') {
+                setTimeout(() => {
+                    renderCharts();
+                }, 60);
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function toggleTheme() {
+            const htmlEl = document.documentElement;
+            htmlEl.classList.toggle('dark');
+            if (state.currentPage === 'analytics') {
+                renderCharts();
+            }
+        }
+
+        /*************************************************************************
+         * 3. CORE FINANCIAL PLANNING & RULE ENGINE
+         *************************************************************************/
+        function evaluateFinancialPlan() {
+            const { income, expenses, debt, savings, age, risk, goal } = state;
+
+            // 1. Cashflow & Core Ratios
+            const totalOutflow = expenses + debt;
+            const surplus = income - totalOutflow;
+            const investableSurplus = Math.max(0, surplus);
+            const savingsRate = income > 0 ? (surplus / income) * 100 : 0;
+            const dtiRatio = income > 0 ? (debt / income) * 100 : 0;
+            const needsWantsRatio = income > 0 ? (expenses / income) * 100 : 0;
+
+            // 2. Emergency Fund Adequacy (Target = 6 months of mandatory outflow)
+            const monthlyMandatory = Math.max(10000, totalOutflow);
+            const emergencyTarget = monthlyMandatory * 6;
+            const emergencyMonths = savings / monthlyMandatory;
+            const emergencyGap = Math.max(0, emergencyTarget - savings);
+
+            // 3. Composite Financial Health Score (0 - 100)
+            // Component A: Savings Rate (Max 35 pts, full marks at >=30% savings rate)
+            let savingsScore = 0;
+            if (savingsRate > 0) {
+                savingsScore = Math.min(35, (savingsRate / 30) * 35);
+            }
+            // Component B: Debt-to-Income Ratio (Max 35 pts)
+            let dtiScore = 35;
+            if (dtiRatio > 50) {
+                dtiScore = 4;
+            } else if (dtiRatio > 35) {
+                dtiScore = 15 - ((dtiRatio - 35) / 15) * 10;
+            } else if (dtiRatio > 0) {
+                dtiScore = 35 - (dtiRatio / 35) * 15;
+            }
+            // Component C: Emergency Fund Runway (Max 30 pts, full marks at >=6 months)
+            const efScore = Math.min(30, (emergencyMonths / 6) * 30);
+
+            let healthScore = Math.round(savingsScore + dtiScore + efScore);
+            if (surplus < 0) {
+                healthScore = Math.min(healthScore, 25);
+            }
+            healthScore = Math.max(5, Math.min(100, healthScore));
+
+            let healthLabel = 'Optimal';
+            let healthColor = 'emerald';
+            if (healthScore < 40) {
+                healthLabel = 'Critical';
+                healthColor = 'rose';
+            } else if (healthScore < 65) {
+                healthLabel = 'Vulnerable';
+                healthColor = 'amber';
+            } else if (healthScore < 80) {
+                healthLabel = 'Good';
+                healthColor = 'emerald';
+            }
+
+            // 4. Dynamic Asset Allocation Matrix (% of Investable Surplus)
+            // Baseline weights by risk profile
+            let wEquity = 50, wDebt = 20, wEmergency = 20, wGold = 10;
+            let cagr = 0.12;
+
+            if (risk === 'conservative') {
+                wEquity = 30; wDebt = 40; wEmergency = 20; wGold = 10;
+                cagr = 0.085;
+            } else if (risk === 'moderate') {
+                wEquity = 55; wDebt = 20; wEmergency = 15; wGold = 10;
+                cagr = 0.12;
+            } else if (risk === 'aggressive') {
+                wEquity = 70; wDebt = 10; wEmergency = 10; wGold = 10;
+                cagr = 0.145;
+            }
+
+            // Age-based adjustment: if user is >45, trim equity slightly for safety
+            if (age > 45 && wEquity > 40) {
+                const shift = Math.min(15, Math.round((age - 45) * 0.8));
+                wEquity -= shift;
+                wDebt += shift;
+            }
+
+            // Heuristic Override 1: If Emergency Fund < 3 months or goal === 'emergency', boost Liquid Emergency allocation
+            if (emergencyMonths < 3 || goal === 'emergency') {
+                const boost = emergencyMonths < 1.5 ? 30 : 20;
+                wEmergency += boost;
+                wEquity = Math.max(15, wEquity - Math.round(boost * 0.7));
+                wDebt = Math.max(10, 100 - (wEquity + wEmergency + wGold));
+            }
+
+            // Heuristic Override 2: If DTI > 35% or goal === 'debt', channel more into Debt Prepayment / Safe Debt bucket
+            if (dtiRatio > 35 || goal === 'debt') {
+                wDebt += 25;
+                wEquity = Math.max(15, wEquity - 20);
+                wGold = 5;
+                wEmergency = Math.max(10, 100 - (wEquity + wDebt + wGold));
+            }
+
+            // Normalize weights to sum to 100%
+            const totalW = wEquity + wDebt + wEmergency + wGold;
+            wEquity = Math.round((wEquity / totalW) * 100);
+            wDebt = Math.round((wDebt / totalW) * 100);
+            wEmergency = Math.round((wEmergency / totalW) * 100);
+            wGold = 100 - (wEquity + wDebt + wEmergency);
+
+            const allocAmounts = {
+                equity: Math.round((investableSurplus * wEquity) / 100),
+                debt: Math.round((investableSurplus * wDebt) / 100),
+                emergency: Math.round((investableSurplus * wEmergency) / 100),
+                gold: Math.round((investableSurplus * wGold) / 100)
+            };
+
+            // 5. Wealth Projection Math (10-Yr & 20-Yr Corpus)
+            const proj10 = calculateSIPProjection(investableSurplus, cagr, 10, state.stepUpSIP);
+            const proj20 = calculateSIPProjection(investableSurplus, cagr, 20, state.stepUpSIP);
+
+            // 6. Synthesize Dynamic Actionable Roadmap Bullet Points
+            const roadmap = [];
+
+            // Rule A: Cashflow / Budget check
+            if (surplus <= 0) {
+                roadmap.push({
+                    badge: 'URGENT CASHFLOW DEFICIT',
+                    badgeColor: 'bg-rose-500/15 text-rose-500 border-rose-500/30',
+                    text: `Your monthly outflows (${formatINR(totalOutflow)}) exceed or equal your income (${formatINR(income)}) by ${formatINR(Math.abs(surplus))}. Trim discretionary expenses by at least ${formatINR(Math.max(5000, Math.abs(surplus) + 5000))}/mo before starting new SIPs.`
+                });
+            } else if (savingsRate < 20) {
+                const targetSavings = Math.round(income * 0.20);
+                roadmap.push({
+                    badge: 'BOOST SAVINGS RATE',
+                    badgeColor: 'bg-amber-500/15 text-amber-500 border-amber-500/30',
+                    text: `Your current savings rate is ${savingsRate.toFixed(1)}% (${formatINR(surplus)}/mo). According to the 50/30/20 rule, aim to reduce variable expenses by ${formatINR(targetSavings - surplus)}/mo to reach the 20% savings benchmark (${formatINR(targetSavings)}/mo).`
+                });
+            } else {
+                roadmap.push({
+                    badge: 'STRONG CASHFLOW SURPLUS',
+                    badgeColor: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30',
+                    text: `You retain ${savingsRate.toFixed(1)}% (${formatINR(surplus)}/mo) of your income. Automate your investments on salary day +2 so lifestyle creep does not erode this surplus.`
+                });
+            }
+
+            // Rule B: Debt-to-Income Advisory
+            if (dtiRatio > 35) {
+                roadmap.push({
+                    badge: 'HIGH DEBT ALERT',
+                    badgeColor: 'bg-rose-500/15 text-rose-500 border-rose-500/30',
+                    text: `Your EMIs consume ${dtiRatio.toFixed(1)}% of net income (safe ceiling is 35%). Use ${formatINR(allocAmounts.debt)}/mo from your surplus for an Avalanche debt payoff on your highest-interest loan before scaling aggressive equity.`
+                });
+            } else if (debt > 0) {
+                roadmap.push({
+                    badge: 'DEBT MANAGEMENT',
+                    badgeColor: 'bg-sky-500/15 text-sky-500 border-sky-500/30',
+                    text: `Your DTI ratio is healthy at ${dtiRatio.toFixed(1)}% (${formatINR(debt)}/mo). Continue regular EMIs and avoid new consumer debt; paying 1 extra EMI per year can shave ~2.5 years off long-term loans.`
+                });
+            } else {
+                roadmap.push({
+                    badge: 'ZERO DEBT ADVANTAGE',
+                    badgeColor: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30',
+                    text: `You have 0% EMI burden! You can channel 100% of your ${formatINR(investableSurplus)}/mo surplus directly into compounding assets.`
+                });
+            }
+
+            // Rule C: Emergency Fund Runway Advisory
+            if (emergencyMonths < 6) {
+                const monthsToFill = allocAmounts.emergency > 0 ? Math.ceil(emergencyGap / allocAmounts.emergency) : 99;
+                roadmap.push({
+                    badge: 'EMERGENCY BUFFER GAP',
+                    badgeColor: 'bg-amber-500/15 text-amber-500 border-amber-500/30',
+                    text: `Your liquid savings (${formatINR(savings)}) cover ${emergencyMonths.toFixed(1)} months of outflows. Allocate ${formatINR(allocAmounts.emergency)}/mo into an instant-redemption Liquid Fund or Sweep-FD to bridge the ${formatINR(emergencyGap)} gap in ~${monthsToFill} months.`
+                });
+            } else {
+                roadmap.push({
+                    badge: '6-MONTH FORTRESS READY',
+                    badgeColor: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30',
+                    text: `Your emergency fund of ${formatINR(savings)} covers ${emergencyMonths.toFixed(1)} months (exceeding the 6-month target of ${formatINR(emergencyTarget)}). Keep it parked in a tax-efficient Liquid/Arbitrage fund.`
+                });
+            }
+
+            // Rule D: Goal & Portfolio Execution
+            const goalNames = {
+                wealth: 'Long-Term Wealth Creation',
+                emergency: 'Emergency Liquidity Shield',
+                debt: 'Debt Freedom Acceleration',
+                asset: 'Major Asset / Home Downpayment'
+            };
+            roadmap.push({
+                badge: `GOAL: ${goalNames[goal].toUpperCase()}`,
+                badgeColor: 'bg-indigo-500/15 text-indigo-500 border-indigo-500/30',
+                text: `For your age (${age}) & ${risk.toUpperCase()} profile, deploy ${formatINR(allocAmounts.equity)}/mo (${wEquity}%) into Nifty 50 Index + Flexi-Cap SIPs and ${formatINR(allocAmounts.gold)}/mo (${wGold}%) into Gold ETFs. At ${(cagr * 100).toFixed(1)}% CAGR, your monthly surplus compounds to ${formatCompactINR(proj10.totalValue)} in 10 yrs and ${formatCompactINR(proj20.totalValue)} in 20 yrs.`
+            });
+
+            return {
+                totalOutflow,
+                surplus,
+                investableSurplus,
+                savingsRate,
+                dtiRatio,
+                needsWantsRatio,
+                emergencyTarget,
+                emergencyMonths,
+                emergencyGap,
+                healthScore,
+                healthLabel,
+                healthColor,
+                weights: { equity: wEquity, debt: wDebt, emergency: wEmergency, gold: wGold },
+                allocAmounts,
+                cagr,
+                proj10,
+                proj20,
+                roadmap
+            };
+        }
+
+        // Helper to compute SIP compounding with optional annual step-up
+        function calculateSIPProjection(monthlySIP, annualRate, years, stepUp = false) {
+            const monthlyRate = annualRate / 12;
+            let totalInvested = 0;
+            let currentCorpus = 0;
+            let currentMonthlySIP = Math.max(0, monthlySIP);
+            const yearlySnapshots = [];
+
+            for (let y = 1; y <= years; y++) {
+                for (let m = 1; m <= 12; m++) {
+                    totalInvested += currentMonthlySIP;
+                    currentCorpus = (currentCorpus + currentMonthlySIP) * (1 + monthlyRate);
+                }
+                yearlySnapshots.push({
+                    year: y,
+                    invested: Math.round(totalInvested),
+                    value: Math.round(currentCorpus)
+                });
+                if (stepUp) {
+                    currentMonthlySIP = currentMonthlySIP * 1.10; // 10% annual step-up
+                }
+            }
+
+            return {
+                totalInvested: Math.round(totalInvested),
+                totalValue: Math.round(currentCorpus),
+                wealthGained: Math.round(currentCorpus - totalInvested),
+                yearlySnapshots
+            };
+        }
+
+        /*************************************************************************
+         * 4. UI SYNCHRONIZATION & SLIDER EVENT HANDLERS
+         *************************************************************************/
+        function onParameterSliderChange() {
+            state.income = Number(document.getElementById('slider-income').value);
+            state.expenses = Number(document.getElementById('slider-expenses').value);
+            state.debt = Number(document.getElementById('slider-debt').value);
+            state.savings = Number(document.getElementById('slider-savings').value);
+            state.age = Number(document.getElementById('slider-age').value);
+            state.risk = document.getElementById('select-risk').value;
+            state.goal = document.getElementById('select-goal').value;
+            state.personaName = 'Custom Live Scenario';
+
+            highlightActivePresetButton(null);
+            updateAllCalculations();
+        }
+
+        function syncSlidersFromState() {
+            document.getElementById('slider-income').value = state.income;
+            document.getElementById('slider-expenses').value = state.expenses;
+            document.getElementById('slider-debt').value = state.debt;
+            document.getElementById('slider-savings').value = state.savings;
+            document.getElementById('slider-age').value = state.age;
+            document.getElementById('select-risk').value = state.risk;
+            document.getElementById('select-goal').value = state.goal;
+        }
+
+        function applyPersona(key) {
+            const preset = PERSONAS[key];
+            if (!preset) return;
+
+            Object.assign(state, preset);
+            syncSlidersFromState();
+            highlightActivePresetButton(key);
+            updateAllCalculations();
+
+            // Also post an automatic bot message showing how the bot reacts to this persona
+            const plan = evaluateFinancialPlan();
+            appendBotMessage(
+                `🔄 **Switched to Persona: ${state.personaName}**\n` +
+                `• Monthly Income: **${formatINR(state.income)}** | Outflows: **${formatINR(plan.totalOutflow)}**\n` +
+                `• Investable Surplus: **${formatINR(plan.investableSurplus)}/mo** (${plan.savingsRate.toFixed(1)}% savings rate)\n` +
+                `• FinHealth Score: **${plan.healthScore}/100 (${plan.healthLabel})**\n` +
+                `• Top Bot Advice: ${plan.roadmap[0].text}`
+            );
+        }
+
+        function highlightActivePresetButton(activeKey) {
+            ['grad', 'pro', 'debt', 'fire'].forEach(k => {
+                const btn = document.getElementById(`preset-${k}`);
+                if (!btn) return;
+                if (k === activeKey) {
+                    btn.className = 'preset-btn px-3 py-1.5 rounded-xl text-xs font-bold border border-emerald-500 bg-emerald-500/15 text-emerald-500 transition';
+                } else {
+                    btn.className = 'preset-btn px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 hover:border-emerald-500 transition';
+                }
+            });
+        }
+
+        function updateAllCalculations() {
+            const stepUpCheckbox = document.getElementById('toggle-stepup');
+            if (stepUpCheckbox) {
+                state.stepUpSIP = stepUpCheckbox.checked;
+            }
+
+            // Update slider labels
+            document.getElementById('val-income').textContent = formatINR(state.income);
+            document.getElementById('val-expenses').textContent = formatINR(state.expenses);
+            document.getElementById('val-debt').textContent = formatINR(state.debt);
+            document.getElementById('val-savings').textContent = formatINR(state.savings);
+            document.getElementById('val-age').textContent = `${state.age} yrs`;
+
+            const plan = evaluateFinancialPlan();
+
+            // Header & Hero quick indicators
+            document.getElementById('header-health-score').textContent = `${plan.healthScore}/100`;
+            document.getElementById('hero-persona-name').textContent = state.personaName;
+            document.getElementById('hero-score-badge').textContent = `Score: ${plan.healthScore}/100`;
+            document.getElementById('hero-surplus').textContent = `${formatINR(plan.investableSurplus)} / mo`;
+            document.getElementById('hero-dti').textContent = `${plan.dtiRatio.toFixed(1)}% (${plan.dtiRatio > 35 ? 'High' : 'Safe'})`;
+            document.getElementById('hero-corpus').textContent = formatCompactINR(plan.proj10.totalValue);
+
+            // Advisory Card KPIs
+            document.getElementById('out-health-score').textContent = plan.healthScore;
+            const badgeEl = document.getElementById('out-health-badge');
+            const barEl = document.getElementById('out-health-bar');
+            badgeEl.textContent = plan.healthLabel;
+
+            if (plan.healthColor === 'rose') {
+                badgeEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-rose-500/20 text-rose-400';
+                barEl.className = 'h-full bg-rose-500 transition-all duration-300';
+                document.getElementById('out-health-score').className = 'text-3xl font-extrabold font-mono text-rose-400';
+            } else if (plan.healthColor === 'amber') {
+                badgeEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-500/20 text-amber-400';
+                barEl.className = 'h-full bg-amber-500 transition-all duration-300';
+                document.getElementById('out-health-score').className = 'text-3xl font-extrabold font-mono text-amber-400';
+            } else {
+                badgeEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-400';
+                barEl.className = 'h-full bg-emerald-500 transition-all duration-300';
+                document.getElementById('out-health-score').className = 'text-3xl font-extrabold font-mono text-emerald-400';
+            }
+            barEl.style.width = `${plan.healthScore}%`;
+
+            // Surplus & Savings Rate
+            const surplusEl = document.getElementById('out-surplus');
+            surplusEl.textContent = formatINR(plan.surplus);
+            surplusEl.className = plan.surplus < 0
+                ? 'text-xl font-extrabold font-mono text-rose-500 my-1'
+                : 'text-xl font-extrabold font-mono text-emerald-600 dark:text-emerald-400 my-1';
+            document.getElementById('out-savings-rate').innerHTML = `Savings Rate: <strong>${plan.savingsRate.toFixed(1)}%</strong> (Target &ge;20%)`;
+
+            // DTI
+            const dtiEl = document.getElementById('out-dti-val');
+            dtiEl.textContent = `${plan.dtiRatio.toFixed(1)}%`;
+            dtiEl.className = plan.dtiRatio > 35
+                ? 'text-xl font-extrabold font-mono text-rose-500 my-1'
+                : 'text-xl font-extrabold font-mono text-emerald-600 dark:text-emerald-400 my-1';
+            document.getElementById('out-dti-status').textContent = plan.dtiRatio > 35
+                ? '⚠️ Exceeds 35% Safe Threshold!'
+                : 'Safe Limit (≤35% of Income)';
+
+            // Emergency Fund
+            const efEl = document.getElementById('out-ef-months');
+            efEl.textContent = `${plan.emergencyMonths.toFixed(1)} Months`;
+            efEl.className = plan.emergencyMonths >= 6
+                ? 'text-xl font-extrabold font-mono text-emerald-500 my-1'
+                : 'text-xl font-extrabold font-mono text-amber-500 my-1';
+            document.getElementById('out-ef-target').textContent = `6-Mo Target: ${formatCompactINR(plan.emergencyTarget)}`;
+
+            // Alert Banner
+            const alertBanner = document.getElementById('out-alert-banner');
+            const alertText = document.getElementById('out-alert-text');
+            if (plan.surplus < 0) {
+                alertBanner.className = 'p-3.5 rounded-xl border border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-300 text-xs font-medium flex items-start gap-2.5';
+                alertText.innerHTML = `<strong>Negative Cashflow Detected:</strong> Your combined expenses and EMIs (${formatINR(plan.totalOutflow)}) exceed your monthly income by <strong>${formatINR(Math.abs(plan.surplus))}</strong>. The bot has paused aggressive SIP recommendations until positive cashflow is restored.`;
+            } else if (plan.dtiRatio > 35) {
+                alertBanner.className = 'p-3.5 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs font-medium flex items-start gap-2.5';
+                alertText.innerHTML = `<strong>High Debt-to-Income Warning (${plan.dtiRatio.toFixed(1)}%):</strong> Because over 35% of your income goes toward EMIs, the Advisory Engine automatically shifted <strong>${plan.weights.debt}% (${formatINR(plan.allocAmounts.debt)}/mo)</strong> of your surplus toward accelerated debt prepayment.`;
+            } else {
+                alertBanner.className = 'hidden';
+            }
+
+            // Asset Allocation Visuals
+            document.getElementById('out-allocation-subtitle').textContent = `Deploying ${formatINR(plan.investableSurplus)}/mo surplus`;
+            document.getElementById('bar-equity').style.width = `${plan.weights.equity}%`;
+            document.getElementById('bar-debt').style.width = `${plan.weights.debt}%`;
+            document.getElementById('bar-emergency').style.width = `${plan.weights.emergency}%`;
+            document.getElementById('bar-gold').style.width = `${plan.weights.gold}%`;
+
+            document.getElementById('pct-equity').textContent = `${plan.weights.equity}%`;
+            document.getElementById('pct-debt').textContent = `${plan.weights.debt}%`;
+            document.getElementById('pct-emergency').textContent = `${plan.weights.emergency}%`;
+            document.getElementById('pct-gold').textContent = `${plan.weights.gold}%`;
+
+            document.getElementById('amt-equity').textContent = `${formatINR(plan.allocAmounts.equity)}/mo`;
+            document.getElementById('amt-debt').textContent = `${formatINR(plan.allocAmounts.debt)}/mo`;
+            document.getElementById('amt-emergency').textContent = `${formatINR(plan.allocAmounts.emergency)}/mo`;
+            document.getElementById('amt-gold').textContent = `${formatINR(plan.allocAmounts.gold)}/mo`;
+
+            // Render Roadmap List
+            const roadmapList = document.getElementById('out-roadmap-list');
+            roadmapList.innerHTML = plan.roadmap.map(item => `
+                <li class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center gap-2.5">
+                    <span class="shrink-0 text-[10px] font-mono font-bold px-2.5 py-1 rounded-md border ${item.badgeColor}">
+                        ${item.badge}
+                    </span>
+                    <span class="text-slate-700 dark:text-slate-300 leading-relaxed">${item.text}</span>
+                </li>
+            `).join('');
+
+            // Update Analytics Page KPIs
+            document.getElementById('analytics-sync-summary').textContent = `Income: ${formatCompactINR(state.income)}/mo | Surplus: ${formatCompactINR(plan.investableSurplus)}/mo`;
+            document.getElementById('proj-10yr-val').textContent = formatCompactINR(plan.proj10.totalValue);
+            document.getElementById('proj-10yr-sub').textContent = `Principal Invested: ${formatCompactINR(plan.proj10.totalInvested)}`;
+            document.getElementById('proj-20yr-val').textContent = formatCompactINR(plan.proj20.totalValue);
+            document.getElementById('proj-20yr-sub').textContent = `Principal Invested: ${formatCompactINR(plan.proj20.totalInvested)}`;
+            document.getElementById('proj-cagr-val').textContent = `${(plan.cagr * 100).toFixed(1)}% p.a.`;
+            document.getElementById('proj-cagr-sub').textContent = `Based on ${state.risk.toUpperCase()} Profile ${state.stepUpSIP ? '(+10% Step-Up)' : ''}`;
+
+            // Update Architecture JSON Inspector
+            const jsonInspector = document.getElementById('arch-json-inspector');
+            if (jsonInspector) {
+                const debugPayload = {
+                    activePersona: state.personaName,
+                    inputs: {
+                        monthlyIncomeINR: state.income,
+                        monthlyExpensesINR: state.expenses,
+                        monthlyDebtEMI_INR: state.debt,
+                        existingEmergencySavingsINR: state.savings,
+                        age: state.age,
+                        riskAppetite: state.risk,
+                        primaryGoal: state.goal
+                    },
+                    computedMetrics: {
+                        finHealthScore: plan.healthScore,
+                        status: plan.healthLabel,
+                        netMonthlySurplusINR: plan.surplus,
+                        savingsRatePct: Number(plan.savingsRate.toFixed(2)),
+                        debtToIncomePct: Number(plan.dtiRatio.toFixed(2)),
+                        emergencyRunwayMonths: Number(plan.emergencyMonths.toFixed(2))
+                    },
+                    recommendedAllocation: {
+                        weightsPct: plan.weights,
+                        monthlyAmountsINR: plan.allocAmounts
+                    }
+                };
+                jsonInspector.textContent = JSON.stringify(debugPayload, null, 2);
+            }
+
+            if (state.currentPage === 'analytics') {
+                renderCharts();
+            }
+        }
+
+        /*************************************************************************
+         * 5. CONVERSATIONAL BOT (STEP-BY-STEP QUESTIONNAIRE + FREE Q&A)
+         *************************************************************************/
+        function appendBotMessage(markdownText) {
+            const container = document.getElementById('chat-messages');
+            const htmlFormatted = markdownText
+                .replace(/\*\*(.*?)\*\*/g, '<strong class="text-slate-900 dark:text-white font-semibold">$1</strong>')
+                .replace(/\n/g, '<br>');
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'flex items-start gap-2.5 page-transition';
+            msgDiv.innerHTML = `
+                <div class="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-500 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">AI</div>
+                <div class="max-w-[88%] p-3.5 rounded-2xl rounded-tl-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed shadow-sm">
+                    ${htmlFormatted}
+                </div>
+            `;
+            container.appendChild(msgDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function appendUserMessage(text) {
+            const container = document.getElementById('chat-messages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'flex items-start justify-end gap-2.5 page-transition';
+            msgDiv.innerHTML = `
+                <div class="max-w-[82%] p-3 rounded-2xl rounded-tr-none bg-emerald-500 text-slate-950 font-medium text-xs sm:text-sm leading-relaxed shadow-sm">
+                    ${text}
+                </div>
+            `;
+            container.appendChild(msgDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function renderQuickOptions(options) {
+            const bar = document.getElementById('chat-quick-options');
+            bar.innerHTML = options.map(opt => `
+                <button type="button" onclick="handleQuickChipClick('${opt.value.replace(/'/g, "\\'")}')" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 hover:bg-emerald-500/10 hover:border-emerald-500/40 border border-slate-200 dark:border-slate-700 text-[11px] font-medium text-slate-700 dark:text-slate-300 transition">
+                    ${opt.label}
+                </button>
+            `).join('');
+        }
+
+        function handleQuickChipClick(val) {
+            const input = document.getElementById('chat-input');
+            input.value = val;
+            handleChatSubmit(new Event('submit'));
+        }
+
+        function startGuidedInterview() {
+            state.interviewStep = 1;
+            document.getElementById('bot-step-indicator').textContent = 'Step 1 of 6 • Monthly Income';
+            appendBotMessage(
+                `👋 **Let's run a 6-step Financial Diagnostic!**\n` +
+                `**Question 1/6:** What is your **monthly net take-home income** (in ₹)?`
+            );
+            renderQuickOptions([
+                { label: '₹45,000', value: '45000' },
+                { label: '₹85,000', value: '85000' },
+                { label: '₹1,20,000', value: '120000' },
+                { label: '₹2,00,000', value: '200000' }
+            ]);
+        }
+
+        // Helper to parse Indian number input like "1.2 lakh", "80k", "95000"
+        function parseIndianCurrencyNumber(raw) {
+            const clean = raw.toLowerCase().replace(/,/g, '').replace(/₹/g, '').trim();
+            const match = clean.match(/(\d+(\.\d+)?)/);
+            if (!match) return null;
+            let num = parseFloat(match[1]);
+            if (clean.includes('cr')) num *= 10000000;
+            else if (clean.includes('lakh') || clean.includes('lac') || clean.endsWith('l')) num *= 100000;
+            else if (clean.includes('k')) num *= 1000;
+            return Math.round(num);
+        }
+
+        function handleChatSubmit(e) {
+            if (e && e.preventDefault) e.preventDefault();
+            const inputEl = document.getElementById('chat-input');
+            const userText = inputEl.value.trim();
+            if (!userText) return;
+            inputEl.value = '';
+
+            appendUserMessage(userText);
+
+            // Check if we are inside the 6-step Guided Interview
+            if (state.interviewStep > 0) {
+                processGuidedStepInput(userText);
+                return;
+            }
+
+            // Otherwise, process natural language "What-If" or Financial Query
+            processFreeformQuery(userText);
+        }
+
+        function processGuidedStepInput(userText) {
+            const num = parseIndianCurrencyNumber(userText);
+            const lower = userText.toLowerCase();
+
+            if (state.interviewStep === 1) {
+                if (num === null || num < 5000) {
+                    appendBotMessage(`Please enter a valid monthly income in ₹ (e.g. **60000** or **1.2 lakh**).`);
+                    return;
+                }
+                state.income = Math.min(500000, Math.max(15000, num));
+                syncSlidersFromState();
+                updateAllCalculations();
+
+                state.interviewStep = 2;
+                document.getElementById('bot-step-indicator').textContent = 'Step 2 of 6 • Monthly Expenses';
+                appendBotMessage(
+                    `Got it — Monthly Income set to **${formatINR(state.income)}**.\n` +
+                    `**Question 2/6:** What are your **monthly living expenses** (Rent, groceries, utilities, lifestyle — excluding EMIs)?`
+                );
+                renderQuickOptions([
+                    { label: formatINR(Math.round(state.income * 0.4)), value: String(Math.round(state.income * 0.4)) },
+                    { label: formatINR(Math.round(state.income * 0.5)), value: String(Math.round(state.income * 0.5)) },
+                    { label: formatINR(Math.round(state.income * 0.65)), value: String(Math.round(state.income * 0.65)) }
+                ]);
+                return;
+            }
+
+            if (state.interviewStep === 2) {
+                if (num === null || num < 0) {
+                    appendBotMessage(`Please enter your monthly expenses in ₹ (e.g. **35000**).`);
+                    return;
+                }
+                state.expenses = Math.min(350000, Math.max(5000, num));
+                syncSlidersFromState();
+                updateAllCalculations();
+
+                state.interviewStep = 3;
+                document.getElementById('bot-step-indicator').textContent = 'Step 3 of 6 • Monthly Debt / EMIs';
+                appendBotMessage(
+                    `Noted — Living expenses set to **${formatINR(state.expenses)}/mo**.\n` +
+                    `**Question 3/6:** How much do you pay toward **Total Monthly EMIs / Loans** (Enter 0 if debt-free)?`
+                );
+                renderQuickOptions([
+                    { label: '₹0 (Debt Free)', value: '0' },
+                    { label: '₹15,000', value: '15000' },
+                    { label: '₹30,000', value: '30000' },
+                    { label: '₹45,000', value: '45000' }
+                ]);
+                return;
+            }
+
+            if (state.interviewStep === 3) {
+                if (num === null || num < 0) {
+                    appendBotMessage(`Please enter a valid EMI amount in ₹ (or **0** if you have no debt).`);
+                    return;
+                }
+                state.debt = Math.min(250000, num);
+                syncSlidersFromState();
+                updateAllCalculations();
+
+                state.interviewStep = 4;
+                document.getElementById('bot-step-indicator').textContent = 'Step 4 of 6 • Emergency Savings';
+                appendBotMessage(
+                    `Recorded — Monthly EMI set to **${formatINR(state.debt)}**.\n` +
+                    `**Question 4/6:** How much **existing liquid / emergency savings** (Bank + FD + Liquid Funds) do you currently have?`
+                );
+                renderQuickOptions([
+                    { label: '₹50,000', value: '50000' },
+                    { label: '₹1,50,000', value: '150000' },
+                    { label: '₹3,00,000', value: '300000' },
+                    { label: '₹6,00,000', value: '600000' }
+                ]);
+                return;
+            }
+
+            if (state.interviewStep === 4) {
+                if (num === null || num < 0) {
+                    appendBotMessage(`Please enter your existing savings amount in ₹ (e.g. **150000**).`);
+                    return;
+                }
+                state.savings = Math.min(2000000, num);
+                syncSlidersFromState();
+                updateAllCalculations();
+
+                state.interviewStep = 5;
+                document.getElementById('bot-step-indicator').textContent = 'Step 5 of 6 • Risk Appetite';
+                appendBotMessage(
+                    `Great! Liquid reserve set to **${formatINR(state.savings)}**.\n` +
+                    `**Question 5/6:** What is your **investment risk appetite**? (Conservative, Moderate, or Aggressive)`
+                );
+                renderQuickOptions([
+                    { label: '🛡️ Conservative', value: 'Conservative' },
+                    { label: '⚖️ Moderate', value: 'Moderate' },
+                    { label: '🚀 Aggressive', value: 'Aggressive' }
+                ]);
+                return;
+            }
+
+            if (state.interviewStep === 5) {
+                if (lower.includes('cons') || lower.includes('low')) state.risk = 'conservative';
+                else if (lower.includes('agg') || lower.includes('high')) state.risk = 'aggressive';
+                else state.risk = 'moderate';
+
+                syncSlidersFromState();
+                updateAllCalculations();
+
+                state.interviewStep = 6;
+                document.getElementById('bot-step-indicator').textContent = 'Step 6 of 6 • Primary Goal';
+                appendBotMessage(
+                    `Risk profile set to **${state.risk.toUpperCase()}**.\n` +
+                    `**Final Question 6/6:** What is your **#1 Financial Priority** right now?`
+                );
+                renderQuickOptions([
+                    { label: '📈 Long-Term Wealth / SIP', value: 'Wealth Creation' },
+                    { label: '🛟 Build 6-Mo Emergency Fund', value: 'Emergency Fund' },
+                    { label: '✂️ Pay Off Debt Faster', value: 'Debt Payoff' },
+                    { label: '🏠 Buy Home / Asset', value: 'Buy Asset' }
+                ]);
+                return;
+            }
+
+            if (state.interviewStep === 6) {
+                if (lower.includes('emerg')) state.goal = 'emergency';
+                else if (lower.includes('debt') || lower.includes('loan') || lower.includes('emi')) state.goal = 'debt';
+                else if (lower.includes('home') || lower.includes('asset') || lower.includes('buy')) state.goal = 'asset';
+                else state.goal = 'wealth';
+
+                state.personaName = 'Custom Diagnostic Profile';
+                state.interviewStep = 0;
+                document.getElementById('bot-step-indicator').textContent = 'Diagnostic Complete • Live Advisory Active';
+                syncSlidersFromState();
+                updateAllCalculations();
+
+                postUpdatedSummaryToChat();
+                renderDefaultQuickPrompts();
+            }
+        }
+
+        function postUpdatedSummaryToChat() {
+            const plan = evaluateFinancialPlan();
+            appendBotMessage(
+                `✅ **Complete Financial Advisory Report Generated!**\n` +
+                `• **FinHealth Score:** **${plan.healthScore}/100 (${plan.healthLabel})**\n` +
+                `• **Monthly Surplus:** **${formatINR(plan.surplus)}** (Savings Rate: **${plan.savingsRate.toFixed(1)}%**)\n` +
+                `• **Debt-to-Income (DTI):** **${plan.dtiRatio.toFixed(1)}%** | **Emergency Cover:** **${plan.emergencyMonths.toFixed(1)} months**\n` +
+                `• **Recommended Monthly Split:** Equity SIP: **${formatINR(plan.allocAmounts.equity)}** (${plan.weights.equity}%), Debt/PPF: **${formatINR(plan.allocAmounts.debt)}** (${plan.weights.debt}%), Emergency Liquid: **${formatINR(plan.allocAmounts.emergency)}** (${plan.weights.emergency}%), Gold: **${formatINR(plan.allocAmounts.gold)}** (${plan.weights.gold}%).\n` +
+                `• **10-Year Projected Wealth:** **${formatCompactINR(plan.proj10.totalValue)}** at ${(plan.cagr * 100).toFixed(1)}% CAGR.\n\n` +
+                `💡 *Tip: Drag any slider on the right or click a question below to test how my advice adapts!*`
+            );
+        }
+
+        function renderDefaultQuickPrompts() {
+            renderQuickOptions([
+                { label: '📈 What if my income increases by ₹25K?', value: 'Increase income by 25000' },
+                { label: '✂️ How to clear my debt faster?', value: 'How should I optimize my debt?' },
+                { label: '🛟 Check my Emergency Fund status', value: 'Is my emergency fund enough?' },
+                { label: '🔄 Restart 6-Step Q&A', value: 'Start guided Q&A' }
+            ]);
+        }
+
+        function processFreeformQuery(query) {
+            const lower = query.toLowerCase();
+            const num = parseIndianCurrencyNumber(query);
+
+            if (lower.includes('start') && (lower.includes('q&a') || lower.includes('guided') || lower.includes('interview'))) {
+                startGuidedInterview();
+                return;
+            }
+
+            // Detect direct parameter modification via natural chat!
+            if (lower.includes('increase income') && num) {
+                state.income = Math.min(500000, state.income + num);
+                syncSlidersFromState();
+                updateAllCalculations();
+                const plan = evaluateFinancialPlan();
+                appendBotMessage(
+                    `📈 **Simulated Income Hike (+${formatINR(num)}/mo):**\n` +
+                    `Your new monthly income is **${formatINR(state.income)}**, raising your investable surplus to **${formatINR(plan.investableSurplus)}/mo** (${plan.savingsRate.toFixed(1)}% savings rate).\n` +
+                    `Your 10-year projected wealth jumps to **${formatCompactINR(plan.proj10.totalValue)}**! Check the updated allocation bars on the right.`
+                );
+                return;
+            }
+
+            if (lower.includes('income') && num && num >= 15000) {
+                state.income = Math.min(500000, num);
+                syncSlidersFromState();
+                updateAllCalculations();
+                postUpdatedSummaryToChat();
+                return;
+            }
+
+            const plan = evaluateFinancialPlan();
+
+            if (lower.includes('debt') || lower.includes('emi') || lower.includes('loan')) {
+                appendBotMessage(
+                    `✂️ **Debt Optimization Analysis:**\n` +
+                    `Your current EMIs are **${formatINR(state.debt)}/mo**, which is **${plan.dtiRatio.toFixed(1)}%** of your net income.\n` +
+                    (plan.dtiRatio > 35
+                        ? `⚠️ Because this exceeds the 35% safe threshold, I have allocated **${formatINR(plan.allocAmounts.debt)}/mo** from your surplus specifically toward high-interest principal prepayment (Avalanche strategy).`
+                        : `✅ Your DTI is well within the safe <35% zone. Keep paying regular EMIs and channel **${formatINR(plan.allocAmounts.equity)}/mo** into higher-yielding Equity SIPs.`)
+                );
+                return;
+            }
+
+            if (lower.includes('emergency') || lower.includes('liquid')) {
+                appendBotMessage(
+                    `🛟 **Emergency Reserve Diagnostic:**\n` +
+                    `Based on your monthly mandatory outflows of **${formatINR(plan.totalOutflow)}**, your 6-month fortress target is **${formatINR(plan.emergencyTarget)}**.\n` +
+                    `You currently hold **${formatINR(state.savings)}** (${plan.emergencyMonths.toFixed(1)} months). ` +
+                    (plan.emergencyGap > 0
+                        ? `I recommend directing **${formatINR(plan.allocAmounts.emergency)}/mo** into a Liquid Mutual Fund or high-yield sweep account until the **${formatINR(plan.emergencyGap)}** gap is closed.`
+                        : `You are fully covered! No extra emergency top-up is required.`)
+                );
+                return;
+            }
+
+            // Default contextual response
+            appendBotMessage(
+                `🤖 **Live Financial Snapshot (${state.personaName}):**\n` +
+                `With **${formatINR(state.income)}** income and **${formatINR(plan.totalOutflow)}** total outflows, your optimal move is investing **${formatINR(plan.allocAmounts.equity)}/mo** in Equity SIPs, **${formatINR(plan.allocAmounts.debt)}/mo** in Debt/PPF, **${formatINR(plan.allocAmounts.emergency)}/mo** in Liquid Reserves, and **${formatINR(plan.allocAmounts.gold)}/mo** in Gold.\n` +
+                `Try dragging any slider on the right or click **"↻ Guided Q&A"** at the top of the chat!`
+            );
+        }
+
+        /*************************************************************************
+         * 6. CHART.JS ANALYTICS VISUALIZATIONS
+         *************************************************************************/
+        let wealthChartInstance = null;
+        let budgetChartInstance = null;
+
+        function renderCharts() {
+            const plan = evaluateFinancialPlan();
+            const isDark = document.documentElement.classList.contains('dark');
+            const textColor = isDark ? '#94a3b8' : '#475569';
+            const gridColor = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(71, 85, 105, 0.1)';
+
+            // 1. 20-Year Wealth Trajectory Chart
+            const ctxWealth = document.getElementById('wealthChart');
+            if (ctxWealth) {
+                const labels = plan.proj20.yearlySnapshots.map(s => `Yr ${s.year}`);
+                const investedData = plan.proj20.yearlySnapshots.map(s => Number((s.invested / 100000).toFixed(2)));
+                const valueData = plan.proj20.yearlySnapshots.map(s => Number((s.value / 100000).toFixed(2)));
+
+                if (wealthChartInstance) wealthChartInstance.destroy();
+                wealthChartInstance = new Chart(ctxWealth, {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [
+                            {
+                                label: 'Projected Portfolio Value (₹ Lakhs)',
+                                data: valueData,
+                                borderColor: '#10b981',
+                                backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                                borderWidth: 2.5,
+                                fill: true,
+                                tension: 0.35
+                            },
+                            {
+                                label: 'Total Principal Invested (₹ Lakhs)',
+                                data: investedData,
+                                borderColor: '#6366f1',
+                                borderDash: [5, 5],
+                                borderWidth: 2,
+                                fill: false,
+                                tension: 0.2
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { labels: { color: textColor, font: { size: 11 } } }
+                        },
+                        scales: {
+                            x: { ticks: { color: textColor, maxTicksLimit: 10 }, grid: { color: gridColor } },
+                            y: {
+                                ticks: {
+                                    color: textColor,
+                                    callback: val => `₹${val}L`
+                                },
+                                grid: { color: gridColor }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 2. 50/30/20 Benchmark vs Actuals Bar Chart
+            const ctxBudget = document.getElementById('budgetChart');
+            if (ctxBudget) {
+                const actualExpensesPct = Number(plan.needsWantsRatio.toFixed(1));
+                const actualDebtPct = Number(plan.dtiRatio.toFixed(1));
+                const actualSavingsPct = Number(Math.max(0, plan.savingsRate).toFixed(1));
+
+                if (budgetChartInstance) budgetChartInstance.destroy();
+                budgetChartInstance = new Chart(ctxBudget, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Living Expenses', 'Debt / EMIs', 'Net Savings / SIP'],
+                        datasets: [
+                            {
+                                label: 'Your Actual Split (%)',
+                                data: [actualExpensesPct, actualDebtPct, actualSavingsPct],
+                                backgroundColor: ['#0ea5e9', '#f43f5e', '#10b981'],
+                                borderRadius: 8
+                            },
+                            {
+                                label: 'Ideal Benchmark (%)',
+                                data: [55, 15, 30],
+                                backgroundColor: isDark ? 'rgba(148, 163, 184, 0.25)' : 'rgba(100, 116, 139, 0.25)',
+                                borderRadius: 8
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { labels: { color: textColor, font: { size: 11 } } }
+                        },
+                        scales: {
+                            x: { ticks: { color: textColor }, grid: { display: false } },
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: { color: textColor, callback: v => `${v}%` },
+                                grid: { color: gridColor }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        /*************************************************************************
+         * 7. INITIALIZATION ON WINDOW LOAD
+         *************************************************************************/
+        window.onload = function () {
+            navigateTo('home');
+            syncSlidersFromState();
+            updateAllCalculations();
+
+            // Populate initial welcome conversation in the Bot
+            appendBotMessage(
+                `👋 **Welcome to FinPulse AI — Personal Financial Advisor Prototype!**\n` +
+                `I am connected directly to a real-time quantitative rule engine. You can interact with me in **3 ways**:\n` +
+                `1️⃣ Click **"↻ Guided Q&A"** above to answer 6 step-by-step diagnostic questions.\n` +
+                `2️⃣ Drag any **Live Parameter Slider** on the right (Income, Expenses, EMIs, Savings, Risk) to watch my financial plan adapt immediately.\n` +
+                `3️⃣ Click any **Persona Preset** at the top to demonstrate how I pivot advice for different financial profiles.`
+            );
+            postUpdatedSummaryToChat();
+            renderDefaultQuickPrompts();
+        };
+    </script>
+</body>
+</html>
